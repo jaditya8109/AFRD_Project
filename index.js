@@ -5,6 +5,10 @@ var app     = express();
 const axios = require('axios');
 var parse = require('csv-parse');
 const fs = require('fs');
+const path = require("path");
+//ejs
+app.set('view engine' , 'ejs');
+
 
 // scrapping 
 
@@ -18,8 +22,9 @@ var dataa = [];
 var prediction = [];
 var confidence = [];
 var result = 0;
-var numb = 0;
 fakeReview = 0;
+var percentFakeReview;
+var averageConfidence;
 request(productURL ,async  (error, response, html) => {
   if (!error && response.statusCode == 200) {
     const $ = cheerio.load(html);
@@ -41,20 +46,7 @@ request(productURL ,async  (error, response, html) => {
     
     console.log(dataa);
     console.log('data saved!');
-    // for(var i = 0; i<dataa.length; i++){
-    //   // calling model api using axios
-
-    //       axios.get('https://afrd.herokuapp.com/', {
-    //         params: {
-    //           query: dataa[i]
-    //         }
-    //       }).then ((data)=> {
-    //       console.log(data.data)
-    //       prediction.push(data.data.prediction);
-    //       confidence.push(data.data.confidence);
-    //       })
-    // }
-      
+    
       const temp = dataa.map(async (elem) => {
           return  axios.get("https://afrd.herokuapp.com", {
               params: {
@@ -75,14 +67,27 @@ request(productURL ,async  (error, response, html) => {
         fakeReview += 1;
       }
     }
-    var percentFakeReview = ((fakeReview)/(prediction.length))*100;
-    var averageConfidence = result/fakeReview;
+    percentFakeReview = ((fakeReview)/(prediction.length))*100;
+    averageConfidence = result/fakeReview;
     console.log(result, fakeReview, percentFakeReview, averageConfidence);
     var jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
     console.log(jsondata);      
-}
-    
+}   
 });
+
+//routes
+
+app.get("/result", (req,res)=>{
+  res.render("result", {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence});
+});
+
+app.get("/", (req,res)=>{
+  res.render('collectURL');
+});
+
+app.listen(6969,()=>{
+  console.log("listening to port 6969");
+})
 
 
 
