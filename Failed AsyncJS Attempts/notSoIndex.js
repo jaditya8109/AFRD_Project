@@ -9,7 +9,7 @@ const fs = require('fs');
 // scrapping 
 
 //paste ur URL below
-const productURL = 'https://www.amazon.in/Redmi-8A-Dual-Blue-Storage/dp/B07X4R63DF/ref=psdc_1805560031_t1_B01MEGHPZ4'
+const productURL = 'https://www.amazon.in/U-S-Polo-Assn-I638-978-PL_Blue-Melange_Large/dp/B0793LFJZP?pd_rd_w=JGKKj&pf_rd_p=278a95ed-d2b3-4cce-a02e-3075364244d4&pf_rd_r=N1MKV0R62JCJF39F08QC&pd_rd_r=3043a8ea-fe4d-4ead-a9bd-1e82d8ad1da3&pd_rd_wg=zfqkY'
 //To save in csv
 
 const writeStream = fs.createWriteStream('data.csv');
@@ -17,7 +17,10 @@ const writeStream = fs.createWriteStream('data.csv');
 var dataa = [];
 var prediction = [];
 var confidence = [];
-request(productURL , (error, response, html) => {
+var result = 0;
+var numb = 0;
+fakeReview = 0;
+request(productURL ,async  (error, response, html) => {
   if (!error && response.statusCode == 200) {
     const $ = cheerio.load(html);
     
@@ -38,51 +41,48 @@ request(productURL , (error, response, html) => {
     
     console.log(dataa);
     console.log('data saved!');
-    for(var i = 0; i<dataa.length; i++){
-      // calling model api using axios
+    // for(var i = 0; i<dataa.length; i++){
+    //   // calling model api using axios
 
-          axios.get('https://afrd.herokuapp.com/', {
-            params: {
-              query: dataa[i]
+    //       axios.get('https://afrd.herokuapp.com/', {
+    //         params: {
+    //           query: dataa[i]
+    //         }
+    //       }).then ((data)=> {
+    //       console.log(data.data)
+    //       prediction.push(data.data.prediction);
+    //       confidence.push(data.data.confidence);
+    //       })
+    // }
+      
+      const temp = dataa.map(async (elem) => {
+          return  axios.get("https://afrd.herokuapp.com", {
+              params: {
+                query : elem
             }
-          }).then ((data)=> {
-          console.log(data.data)
-          prediction.push(data.data.prediction);
-          confidence.push(data.data.confidence);
-          })
+        }).then(resp=>resp.data)
+    })
+      const values = await Promise.all(temp);
+      values.forEach(i => {
+          prediction.push(i.prediction);
+          confidence.push(i.confidence);
+    })
+    console.log(prediction)      
+    console.log(confidence)
+    for(let j=0; j <prediction.length; j++){
+      if(prediction[j]==1){
+        result += confidence[j];
+        fakeReview += 1;
+      }
     }
-  }
+    var percentFakeReview = ((fakeReview)/(prediction.length))*100;
+    var averageConfidence = result/fakeReview;
+    console.log(result, fakeReview, percentFakeReview, averageConfidence);
+    var jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
+    console.log(jsondata);      
+}
+    
 });
 
-// transfering data from csv to array
-
-// var csvData=[];
-// fs.createReadStream('data.csv')
-//     .pipe(parse({delimiter: ':'}))
-//     .on('data', function(csvrow) {
-//         // console.log(csvrow);
-//         //do something with csvrow
-//         csvData.push(csvrow);        
-//     })
-//     .on('end',function() {
-//       //do something with csvData
-//       // console.log(csvData[2][0]);
-//       for (var i = 0; i < csvData.length; i++) {
-//         // calling model api using axios
-
-//           axios.get('https://afrd.herokuapp.com/', {
-//             params: {
-//               query: csvData[i][0]
-//             }
-//           }).then ((data)=>console.log(data.data))
-//         console.log(csvData[i][0]);
-//       }
-//     });
-
-// calculation
 
 
-
-  app.listen(8000 , () => {
-    console.log('listening to port 8000');
-  });

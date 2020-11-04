@@ -37,8 +37,9 @@ function scrapping(productURL){
             }
             console.log(dataa);
             console.log('data saved!');
+            resolve(dataa);
         })
-        resolve();
+        
     }) 
     
 

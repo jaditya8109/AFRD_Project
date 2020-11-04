@@ -5,18 +5,16 @@ var app     = express();
 const axios = require('axios');
 var parse = require('csv-parse');
 const fs = require('fs');
-const { resolve } = require('path');
 
 //paste ur URL below
 // const productURL = 'https://www.amazon.in/Redmi-8A-Dual-Blue-Storage/dp/B07X4R63DF/ref=psdc_1805560031_t1_B01MEGHPZ4'
 //To save in csv
 const writeStream = fs.createWriteStream('data.csv');
 
-var dataa = [];
-var prediction = [];
-var confidence = [];
+
 function scrapping(){
-    return new Promise((resolve)=>{
+    const dataa = [];
+    return new Promise((resolve) => {
         //paste ur URL below
         const productURL = 'https://www.amazon.in/Redmi-8A-Dual-Blue-Storage/dp/B07X4R63DF/ref=psdc_1805560031_t1_B01MEGHPZ4'
         request(productURL , (error, response, html) => {
@@ -38,37 +36,48 @@ function scrapping(){
             
             console.log(dataa);
             console.log('data saved!');
-            return dataa
+            resolve(dataa);
         })
-        resolve();
+        
     }) 
     
 
 };
 
-function mlOutput(arey){
+const mlOutput = async (arey)=>{
     console.log(arey);
-    for(var i = 0; i<arey.length; i++){
-        // calling model api using axios
-        axios.get('https://afrd.herokuapp.com/', {
+    const temp = arey.map(elem => {
+        return axios.get('https://afrd.herokuapp.com/', {
             params: {
-            query: arey[i]
+            query:elem
             }
-        }).then ((data)=> {
-        console.log(data.data)
-        console.log("hello");
-        prediction.push(data.data.prediction);
-        confidence.push(data.data.confidence);
+        }).then ((resp)=> {
+            return resp.data;
         })
-      }
+    })
 
+    const values = await Promise.all(temp)
+    console.log(values)
+
+    // for(var i = 0; i<arey.length; i++){
+    //     // calling model api using axios
+        
+    //   }
+    const prediction = [];
+    const confidence = [];
+
+    values.forEach(val => {
+        prediction.push(val.prediction);
+        confidence.push(val.confidence);
+    })
+    
+    return [prediction, confidence];
 };
 
 async function getoutput(){
-    await scrapping();
-
-    mlOutput(dataa);
-
+    const dataa = await scrapping();
+    const [prediction, confidence] = await mlOutput(dataa);
+    console.log(prediction, confidence);
 };
 
 getoutput();
