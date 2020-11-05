@@ -1,13 +1,20 @@
 const cheerio = require('cheerio');
 const request = require('request');
-var express = require('express');  
-var app     = express(); 
+var express = require('express'); 
 const axios = require('axios');
-var parse = require('csv-parse');
+// var parse = require('csv-parse');
 const fs = require('fs');
 const path = require("path");
+var bodyParser = require('body-parser');
+var app     = express(); 
 //ejs
 app.set('view engine' , 'ejs');
+//body-parser
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+app.use(bodyParser.json());
+
 
 
 // scrapping 
@@ -85,8 +92,13 @@ app.get("/", (req,res)=>{
   res.render('collectURL');
 });
 
-app.listen(6969,()=>{
-  console.log("listening to port 6969");
+app.post('/', (req, res)=> {
+  res.send('You sent the URL ' + " =" + req.body.link );
+  console.log(req.body);
+});
+
+app.listen(7000,()=>{
+  console.log("listening to port 7000");
 })
 
 
