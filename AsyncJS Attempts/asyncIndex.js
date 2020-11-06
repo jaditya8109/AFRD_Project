@@ -1,7 +1,6 @@
 const cheerio = require('cheerio');
 const request = require('request');
 var express = require('express'); 
-
 const axios = require('axios');
 var parse = require('csv-parse');
 const fs = require('fs');
@@ -68,7 +67,7 @@ const mlOutput = async (arey)=>{
             }
         }).then ((resp)=> {
             return resp.data;
-        })
+        }).catch((error)=>{return error});
     })
 
     const values = await Promise.all(temp)
@@ -99,6 +98,7 @@ async function getoutput(productURL){
       averageConfidence = result/fakeReview;
       console.log(result, fakeReview, percentFakeReview, averageConfidence);
       var jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
+      return jsondata;
       console.log(jsondata);
 };
 
@@ -114,12 +114,18 @@ app.get("/result", (req,res)=>{
     res.render('collectURL');
   });
   
-  app.post('/', (req, res)=> {
-    res.send('You sent the URL ' + " =" + req.body.link );
+  app.post('/', async(req, res)=> {
+    // res.send('You sent the URL ' + " =" + req.body.link );
     console.log(req.body.link);
-    getoutput(req.body.link);
+    let data = await getoutput(req.body.link);
+    console.log(data);
+    res.send(data);
   });
   
+  app.use((err,req,res,next)=>{
+    res.send(err);
+})
+
   app.listen(7000,()=>{
     console.log("listening to port 7000");
   })
