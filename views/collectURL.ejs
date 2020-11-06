@@ -8,12 +8,19 @@
     <title>URL Input</title>
 </head>
 <body>
-    <form action="/geturl" method="POST">
-        <div class="form-group">
-            <label >Password</label>
-            <input type="text" class="form-control" id="URL" placeholder="Paste Product URL">
-          </div>
-          <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+    <div class="container-fluid">
+        <div class="row justify-content-center" style="margin-top: 25vh;">
+            <div class="col-md-6">
+                <form  method="POST" action="/">
+                    <div class="form-group">
+                        <label for="link">Password</label>
+                        <input type="text" class="form-control" id="link" name="link" placeholder="Paste Product URL">
+                      </div>
+                      <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
 </body>
 </html>
