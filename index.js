@@ -6,31 +6,19 @@ var parse = require('csv-parse');
 const fs = require('fs');
 var bodyParser = require('body-parser');
 var app     = express(); 
-//ejs
+
 app.set('view engine' , 'ejs');
-//body-parser
+
 app.use(bodyParser.urlencoded({
   extended: true
 }));
 app.use(bodyParser.json());
 
-//paste ur URL below
-// const productURL = 'https://www.amazon.in/Redmi-8A-Dual-Blue-Storage/dp/B07X4R63DF/ref=psdc_1805560031_t1_B01MEGHPZ4'
-//To save in csv
 const writeStream = fs.createWriteStream('data.csv');
-
-
-
-var result = 0;
-fakeReview = 0;
-var percentFakeReview;
-var averageConfidence;
 
 function scrapping(productURL){
     const dataa = [];
     return new Promise((resolve) => {
-        //paste ur URL below
-        // const productURL = 'https://www.amazon.in/Redmi-8A-Dual-Blue-Storage/dp/B07X4R63DF/ref=psdc_1805560031_t1_B01MEGHPZ4'
         request(productURL , (error, response, html) => {
             if (!error && response.statusCode == 200) {
                 const $ = cheerio.load(html);
@@ -43,24 +31,17 @@ function scrapping(productURL){
                         writeStream.write(`${textReview}\n`);
                         //pushing data in array
                         dataa.push(`${textReview}` );
-                       
                     });
-                    
-            }
-            
-            console.log(dataa);
-            console.log('data saved!');
+              }
+            // console.log(dataa);
+            // console.log('data saved!');
             resolve(dataa);
         })
-        
-    }) 
-    
+     }) 
+ };
 
-};
-
-const mlOutput = async (arey)=>{
-    // console.log(arey);
-    const temp = arey.map(elem => {
+const mlOutput = async (arrayData)=>{
+    const temp = arrayData.map(elem => {
         return axios.get('https://afrd.herokuapp.com/', {
             params: {
             query:elem
@@ -71,20 +52,21 @@ const mlOutput = async (arey)=>{
     })
 
     const values = await Promise.all(temp)
-    console.log(values)
-
+    // console.log(values)
     const prediction = [];
     const confidence = [];
-
     values.forEach(val => {
         prediction.push(val.prediction);
         confidence.push(val.confidence);
     })
-    
     return [prediction, confidence];
 };
 
 async function getoutput(productURL){
+    let result = 0;
+    let fakeReview = 0;
+    let percentFakeReview;
+    let averageConfidence;
     const dataa = await scrapping(productURL);
     const [prediction, confidence] = await mlOutput(dataa);
     console.log(prediction, confidence);
@@ -96,36 +78,29 @@ async function getoutput(productURL){
       }
       percentFakeReview = ((fakeReview)/(prediction.length))*100;
       averageConfidence = result/fakeReview;
-      console.log(result, fakeReview, percentFakeReview, averageConfidence);
-      var jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
+      // console.log(result, fakeReview, percentFakeReview, averageConfidence);
+      let jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
       return jsondata;
-      console.log(jsondata);
+      // console.log(jsondata);
 };
 
-// getoutput('https://www.amazon.in/Redmi-8A-Dual-Blue-Storage/dp/B07X4R63DF/ref=psdc_1805560031_t1_B01MEGHPZ4');
-
-//routes
-
-app.get("/result", (req,res)=>{
-    res.render("result", {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence});
-  });
+//routes  
+app.get("/", (req,res)=>{
+  res.render('collectURL');
+});
   
-  app.get("/", (req,res)=>{
-    res.render('collectURL');
-  });
+app.post('/', async(req, res)=> {
+  // console.log(req.body.link);
+  let data = await getoutput(req.body.link);
+  // console.log(data);
+  res.send(data);
+});
   
-  app.post('/', async(req, res)=> {
-    // res.send('You sent the URL ' + " =" + req.body.link );
-    console.log(req.body.link);
-    let data = await getoutput(req.body.link);
-    console.log(data);
-    res.send(data);
-  });
-  
-  app.use((err,req,res,next)=>{
-    res.send(err);
+app.use((err,req,res,next)=>{
+  res.send(err);
 })
 
-  app.listen(7000,()=>{
-    console.log("listening to port 7000");
-  })
+let port = process.env.PORT || 7000;
+app.listen(port, ()=>{
+  console.log("listening to port 7000");
+})
