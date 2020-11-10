@@ -52,7 +52,7 @@ const mlOutput = async (arrayData)=>{
     })
 
     const values = await Promise.all(temp)
-    // console.log(values)
+    console.log(values)
     const prediction = [];
     const confidence = [];
     values.forEach(val => {
@@ -69,7 +69,7 @@ async function getoutput(productURL){
     let averageConfidence;
     const dataa = await scrapping(productURL);
     const [prediction, confidence] = await mlOutput(dataa);
-    console.log(prediction, confidence);
+    // console.log(prediction, confidence);
     for(let j=0; j <prediction.length; j++){
         if(prediction[j]==1){
           result += confidence[j];
@@ -78,7 +78,7 @@ async function getoutput(productURL){
       }
       percentFakeReview = ((fakeReview)/(prediction.length))*100;
       averageConfidence = result/fakeReview;
-      // console.log(result, fakeReview, percentFakeReview, averageConfidence);
+      console.log("sum of confidence ="+ result,"No of fake reviews ="+ fakeReview,"percentage of fake review ="+ percentFakeReview,"average confidence =" + averageConfidence);
       let jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
       return jsondata;
       // console.log(jsondata);
@@ -91,9 +91,17 @@ app.get("/", (req,res)=>{
   
 app.post('/', async(req, res)=> {
   // console.log(req.body.link);
-  let data = await getoutput(req.body.link);
+  try{
+
+    let data = await getoutput(req.body.link);
+    res.send(data);
+
+  }catch(err){
+    throw err;
+  }
+  
   // console.log(data);
-  res.send(data);
+  
 });
   
 app.use((err,req,res,next)=>{
