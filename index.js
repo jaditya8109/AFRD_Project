@@ -1,14 +1,10 @@
 const cheerio = require('cheerio');
-const request = require('request');
 var express = require('express'); 
 const axios = require('axios');
-var parse = require('csv-parse');
 const fs = require('fs');
 var bodyParser = require('body-parser');
-const { resolve } = require('path');
 var app     = express(); 
-axios.defaults.baseURL = 'https://afrd.herokuapp.com/';
-axios.default.timeout=8000;
+
 app.set('view engine' , 'ejs');
 
 app.use(bodyParser.urlencoded({
@@ -18,9 +14,9 @@ app.use(bodyParser.json());
 
 const writeStream = fs.createWriteStream('data.csv');
 
-async function scrapping(productURL){
+function scrapping(productURL){
     const dataa = [];
-    let response =  await new Promise((resolve) => {
+    return new Promise((resolve) => {
       axios.get(productURL)
       .then((response) => {
         const $ = cheerio.load(response.data);
@@ -42,47 +38,38 @@ async function scrapping(productURL){
         console.log(err);
     })
  })
-    
-     return response
-    };
+}
 
-
-
-
-async function mlOutput(arrayData){
-    // console.log(arrayData)
-    let requests=(arrayData).map((data)=>{
-        return (axios.get('/',{params:{query:data}}).then((data)=>{
-            return data
-        }).catch((err)=>{
-          return err
-        }))
+const mlOutput = async (arrayData)=>{
+    const temp = arrayData.map(elem => {
+        return axios.get('https://afrd.herokuapp.com/', {
+            params: {
+            query:elem
+            }
+        }).then ((resp)=> {
+            return resp.data;
+        }).catch((error)=>{return error});
     })
-   
-    let response= await (Promise.all(requests))
-    console.log(response[0])
+
+    const values = await Promise.all(temp)
+    console.log(values)
     const prediction = [];
     const confidence = [];
-    response.forEach(val => {
-        console.log(val.data)
-        prediction.push(val.data.prediction);
-        confidence.push(val.data.confidence);
+    values.forEach(val => {
+        prediction.push(val.prediction);
+        confidence.push(val.confidence);
     })
-    // console.log(response[0])
-    return [prediction,confidence];
-
+    return [prediction, confidence];
 };
 
 async function getoutput(productURL){
-    console.log("prod url "+productURL)
     let result = 0;
     let fakeReview = 0;
-    try{
-      let dataa = await scrapping(productURL);
-      // console.log(dataa)
-     
-      const [prediction, confidence] = await mlOutput(dataa);
-    console.log("prediction :"+prediction+"conf "+confidence);
+    let percentFakeReview;
+    let averageConfidence;
+    const dataa = await scrapping(productURL);
+    const [prediction, confidence] = await mlOutput(dataa);
+    // console.log(prediction, confidence);
     for(let j=0; j <prediction.length; j++){
         if(prediction[j]==1){
           result += confidence[j];
@@ -91,15 +78,10 @@ async function getoutput(productURL){
       }
       percentFakeReview = ((fakeReview)/(prediction.length))*100;
       averageConfidence = result/fakeReview;
-      // console.log(result, fakeReview, percentFakeReview, averageConfidence);
+      console.log("sum of confidence ="+ result,"No of fake reviews ="+ fakeReview,"percentage of fake review ="+ percentFakeReview,"average confidence =" + averageConfidence, "for URl =" + productURL);
       let jsondata = {"percentFakeReview" : percentFakeReview, "averageConfidence" : averageConfidence};
-      // console.log(jsondata);
       return jsondata;
-    
-    }catch(err){
-      throw err;
-    }
-      
+      // console.log(jsondata);
 };
 
 //routes  
@@ -107,23 +89,26 @@ app.get("/", (req,res)=>{
   res.render('collectURL');
 });
   
-app.post("/result", async(req, res,next)=> {
-     getoutput(req.body.link).then((data)=>{
-       res.send(data)
-     }).catch((err)=>{
-       console.log(err)
-       next(err)
-     })
-   
+app.post('/result', async(req, res)=> {
+  // console.log(req.body.link);
+  try{
+
+    let data = await getoutput(req.body.link);
+    res.send(data);
+
+  }catch(err){
+    throw err;
+  }
+  
+  // console.log(data);
+  
 });
   
 app.use((err,req,res,next)=>{
-
   res.send(err);
 })
 
-let port = process.env.PORT || 3000
-let server=app.listen(port, ()=>{
+let port = process.env.PORT || 3000;
+app.listen(port, ()=>{
   console.log("listening to port 3000");
 })
-// server.timeout=1000;
