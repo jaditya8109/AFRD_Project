@@ -1,8 +1,6 @@
 const cheerio = require('cheerio');
-const request = require('request');
 var express = require('express'); 
 const axios = require('axios');
-var parse = require('csv-parse');
 const fs = require('fs');
 var bodyParser = require('body-parser');
 var app     = express(); 
@@ -19,9 +17,9 @@ const writeStream = fs.createWriteStream('data.csv');
 function scrapping(productURL){
     const dataa = [];
     return new Promise((resolve) => {
-        request(productURL , (error, response, html) => {
-            if (!error && response.statusCode == 200) {
-                const $ = cheerio.load(html);
+      axios.get(productURL)
+      .then((response) => {
+        const $ = cheerio.load(response.data);
                 // Load the review comments
                 const reviews = $('.review');
                     reviews.each((i, w) => {
@@ -32,13 +30,15 @@ function scrapping(productURL){
                         //pushing data in array
                         dataa.push(`${textReview}` );
                     });
-              }
             // console.log(dataa);
             // console.log('data saved!');
-            resolve(dataa);
-        })
-     }) 
- };
+            resolve(dataa)
+              
+      }).catch(function (err) {
+        console.log(err);
+    })
+ })
+}
 
 const mlOutput = async (arrayData)=>{
     const temp = arrayData.map(elem => {
